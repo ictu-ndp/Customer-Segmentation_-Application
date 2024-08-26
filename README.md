@@ -1,1 +1,1 @@
-# Customer-Segmention-Application
+# Customer-Segmentation-Application
