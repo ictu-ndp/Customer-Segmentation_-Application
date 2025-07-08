@@ -284,8 +284,77 @@ grouped_results_bkm = predictions_2.groupBy("customer_segment").agg(
 # Hiển thị kết quả
 grouped_results_bkm.show()
 
-from pyspark.ml.evaluation import ClusteringEvaluator
 
+
+import tkinter as tk
+from tkinter import ttk
+from tkcalendar import DateEntry
+from datetime import datetime
+import time
+
+def tinh_thoi_gian_con_lai():
+    ngay = calendar.get_date().strftime('%Y-%m-%d')
+    gio = gio_entry.get()
+    phut = phut_entry.get()
+    giay = giay_entry.get()
+
+    try:
+        thoi_gian_str = f"{ngay} {gio}:{phut}:{giay}"
+        ngay_tuong_lai = datetime.strptime(thoi_gian_str, '%Y-%m-%d %H:%M:%S')
+        hien_tai = datetime.now()
+        khoang_thoi_gian = ngay_tuong_lai - hien_tai
+
+        if khoang_thoi_gian.total_seconds() < 0:
+            ket_qua_label.config(text="🛑 Ngày giờ đã nằm trong quá khứ.")
+            return
+
+        so_ngay = khoang_thoi_gian.days
+        tong_giay = khoang_thoi_gian.seconds
+        so_gio = tong_giay // 3600
+        so_phut = (tong_giay % 3600) // 60
+        so_giay = tong_giay % 60
+
+        ket_qua_label.config(text=f"⏳ Còn lại: {so_ngay} ngày, {so_gio} giờ, {so_phut} phút, {so_giay} giây.")
+
+    except ValueError:
+        ket_qua_label.config(text="🛑 Lỗi định dạng thời gian. Hãy kiểm tra lại.")
+
+root = tk.Tk()
+root.title("Tính thời gian còn lại")
+
+tk.Label(root, text="Chọn ngày tương lai:").grid(row=0, column=0, pady=5)
+calendar = DateEntry(root, date_pattern='yyyy-mm-dd')
+calendar.grid(row=0, column=1, pady=5)
+
+tk.Label(root, text="Giờ (0-23):").grid(row=1, column=0)
+gio_entry = ttk.Entry(root, width=5)
+gio_entry.insert(0, "00")
+gio_entry.grid(row=1, column=1)
+
+tk.Label(root, text="Phút (0-59):").grid(row=2, column=0)
+phut_entry = ttk.Entry(root, width=5)
+phut_entry.insert(0, "00")
+phut_entry.grid(row=2, column=1)
+
+tk.Label(root, text="Giây (0-59):").grid(row=3, column=0)
+giay_entry = ttk.Entry(root, width=5)
+giay_entry.insert(0, "00")
+giay_entry.grid(row=3, column=1)
+
+tinh_button = ttk.Button(root, text="Tính thời gian", command=tinh_thoi_gian_con_lai)
+tinh_button.grid(row=4, column=0, columnspan=2, pady=10)
+
+ket_qua_label = tk.Label(root, text="", fg="blue", font=('Arial', 12))
+ket_qua_label.grid(row=5, column=0, columnspan=2, pady=10)
+
+root.mainloop()
+
+
+
+
+
+
+from pyspark.ml.evaluation import ClusteringEvaluator
 # Tạo ClusteringEvaluator
 evaluator = ClusteringEvaluator()
 
