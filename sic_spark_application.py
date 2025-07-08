@@ -17,6 +17,140 @@ import numpy as np
 
 from pyspark.sql import SparkSession
 
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Đếm ngược đến ngày bạn chọn</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f0f2f5;
+      text-align: center;
+      padding-top: 50px;
+    }
+    h1 {
+      color: #333;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px;
+    }
+    #countdown {
+      margin-top: 30px;
+      font-size: 24px;
+      color: #007b00;
+      font-weight: bold;
+    }
+    #error {
+      color: red;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🕒 Đếm ngược đến thời điểm bạn chọn</h1>
+  <input type="datetime-local" id="targetDateTime">
+  <br>
+  <button onclick="startCountdown()">Bắt đầu</button>
+  <button onclick="resetCountdown()">Reset</button>
+
+  <div id="error"></div>
+  <div id="countdown"></div>
+
+  <script>
+    let interval;
+
+    function startCountdown() {
+      clearInterval(interval);
+      const input = document.getElementById("targetDateTime").value;
+      const countdown = document.getElementById("countdown");
+      const error = document.getElementById("error");
+
+      if (!input) {
+        error.innerText = "🛑 Vui lòng chọn ngày giờ!";
+        countdown.innerText = "";
+        return;
+      }
+
+      const target = new Date(input);
+
+      interval = setInterval(() => {
+        const now = new Date();
+        const diff = target - now;
+
+        if (diff <= 0) {
+          clearInterval(interval);
+          countdown.innerText = "🎉 Đã đến thời điểm bạn chọn!";
+          return;
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+
+        countdown.innerText = `⏳ Còn lại: ${days} ngày, ${hours} giờ, ${minutes} phút, ${seconds} giây.`;
+        error.innerText = "";
+      }, 1000);
+    }
+
+    function resetCountdown() {
+      clearInterval(interval);
+      document.getElementById("targetDateTime").value = "";
+      document.getElementById("countdown").innerText = "";
+      document.getElementById("error").innerText = "";
+    }
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+from datetime import datetime
+
+def tinh_thoi_gian_con_lai(ngay_tuong_lai_str):
+    try:
+        hien_tai = datetime.now()
+        ngay_tuong_lai = datetime.strptime(ngay_tuong_lai_str, '%Y-%m-%d %H:%M:%S')
+        khoang_thoi_gian = ngay_tuong_lai - hien_tai
+
+        if khoang_thoi_gian.total_seconds() < 0:
+            return "🛑 Ngày bạn nhập đã nằm trong quá khứ."
+
+        so_ngay = khoang_thoi_gian.days
+        tong_giay_con_lai = khoang_thoi_gian.seconds
+        so_gio = tong_giay_con_lai // 3600
+        so_phut = (tong_giay_con_lai % 3600) // 60
+        so_giay = tong_giay_con_lai % 60
+
+        return (so_ngay, so_gio, so_phut, so_giay)
+
+    except ValueError:
+        return "🛑 Định dạng ngày giờ không hợp lệ. Hãy nhập theo định dạng: YYYY-MM-DD HH:MM:SS"
+
+ngay_nhap = "2025-12-31 23:59:59"
+ket_qua = tinh_thoi_gian_con_lai(ngay_nhap)
+
+if isinstance(ket_qua, tuple):
+    print(f"⏳ Còn lại: {ket_qua[0]} ngày, {ket_qua[1]} giờ, {ket_qua[2]} phút, {ket_qua[3]} giây.")
+else:
+    print(ket_qua)
+
+
+
+
+
+
+
+
 # Khởi tạo SparkSession với cấu hình HDFS
 spark = SparkSession.builder \
     .appName("Customer Preprocessing") \
