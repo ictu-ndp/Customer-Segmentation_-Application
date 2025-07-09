@@ -96,7 +96,7 @@
     <input type="date" id="datePicker">
   </label>
   <br>
-  <button onclick="startCountdown()">Calculate</button>
+  <button onclick="startCountdown()">Start</button>
 
   <h2 id="countdown">No date selected</h2>
 
@@ -106,22 +106,19 @@
 
     function isWorkingDay(date) {
       const day = date.getDay();
-      return day >= 1 && day <= 5; // Monday to Friday
+      return day >= 1 && day <= 5;
     }
 
     function computeRemainingTime(selectedDateStr) {
       const now = new Date();
       const targetDate = new Date(selectedDateStr);
       targetDate.setHours(23, 59, 59, 999);
-
       if (targetDate < now) return 0;
-
       let totalMs = 0;
 
       for (let d = new Date(now); d <= targetDate; ) {
         const current = new Date(d);
         current.setHours(0, 0, 0, 0);
-
         if (!isWorkingDay(current)) {
           d.setDate(d.getDate() + 1);
           continue;
@@ -131,33 +128,38 @@
         workStart.setHours(8, 0, 0, 0);
         const workEnd = new Date(current);
         workEnd.setHours(17, 30, 0, 0);
-        const workBreak = 1.5 * 60 * 60 * 1000;
+        const breakStart = new Date(current);
+        breakStart.setHours(11, 30, 0, 0);
+        const breakEnd = new Date(current);
+        breakEnd.setHours(13, 0, 0, 0);
 
         if (current.toDateString() === now.toDateString()) {
-          if (now < workStart) {
-            totalMs += workEnd - workStart - workBreak;
-          } else if (now >= workStart && now <= workEnd) {
-            const remaining = workEnd - now;
-
-            let breakRemaining = 0;
-            const breakStart = new Date(current);
-            breakStart.setHours(11, 30, 0, 0);
-            const breakEnd = new Date(current);
-            breakEnd.setHours(13, 0, 0, 0);
-
-            if (now < breakStart) {
-              breakRemaining = workBreak;
-            } else if (now >= breakStart && now <= breakEnd) {
-              breakRemaining = breakEnd - now;
+          let sessionStart = new Date(now);
+          let sessionEnd = new Date(workEnd);
+          if (now >= workEnd) {
+            totalMs += 0;
+          } else if (now < workStart) {
+            totalMs += (workEnd - workStart) - (breakEnd - breakStart);
+          } else {
+            if (sessionEnd <= breakStart) {
+              totalMs += sessionEnd - sessionStart;
+            } else if (sessionStart >= breakEnd) {
+              totalMs += sessionEnd - sessionStart;
+            } else {
+              if (sessionStart < breakStart) {
+                totalMs += breakStart - sessionStart;
+              }
+              if (sessionEnd > breakEnd) {
+                totalMs += sessionEnd - breakEnd;
+              }
             }
-
-            totalMs += remaining - breakRemaining;
           }
         } else {
-          totalMs += workEnd - workStart - workBreak;
+          totalMs += (workEnd - workStart) - (breakEnd - breakStart);
         }
 
         d.setDate(d.getDate() + 1);
+        d.setHours(0, 0, 0, 0);
       }
 
       return totalMs;
@@ -171,9 +173,7 @@
       }
 
       if (intervalId) clearInterval(intervalId);
-
       remainingTime = computeRemainingTime(selected);
-
       if (remainingTime <= 0) {
         document.getElementById("countdown").textContent = "No working time remaining!";
         return;
