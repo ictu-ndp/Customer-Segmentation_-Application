@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Work Time Countdown</title>
-  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet" />
   <style>
     body {
       font-family: 'Quicksand', sans-serif;
@@ -18,39 +18,48 @@
       justify-content: center;
       align-items: center;
     }
-
     h1 {
       font-size: 3em;
       margin-bottom: 30px;
       text-shadow: 2px 2px 5px #000;
     }
 
-    label {
-      font-size: 1.2em;
+    /* Container for form inputs inline */
+    .form-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      max-width: 900px;
       margin-bottom: 20px;
-      display: inline-block;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 15px 25px;
-      border-radius: 12px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.3);
     }
-
-    input[type="date"] {
-      font-size: 18px;
-      padding: 10px 15px;
-      border-radius: 10px;
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      color: #fff;
+      font-size: 1em;
+      min-width: 140px;
+    }
+    .form-group label {
+      margin-bottom: 6px;
+    }
+    input[type="date"],
+    input[type="time"] {
+      font-size: 16px;
+      padding: 6px 10px;
+      border-radius: 8px;
       border: 2px solid #ff9800;
-      background-color: #ffffff;
+      background-color: #fff;
       color: #333;
-      margin-left: 10px;
+      width: 140px;
       transition: border-color 0.3s ease;
     }
-
-    input[type="date"]:focus {
+    input[type="date"]:focus,
+    input[type="time"]:focus {
       outline: none;
       border-color: #ffc107;
     }
-
     button {
       font-size: 20px;
       padding: 12px 35px;
@@ -63,12 +72,10 @@
       box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-
     button:hover {
       transform: translateY(-3px);
       box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     }
-
     #countdown {
       font-size: 2em;
       margin-top: 40px;
@@ -78,89 +85,152 @@
       box-shadow: 0 0 20px rgba(0,0,0,0.4);
       backdrop-filter: blur(4px);
       text-shadow: 1px 1px 2px #000;
+      min-width: 320px;
     }
-
-    @media (max-width: 600px) {
-      h1 { font-size: 2em; }
-      #countdown { font-size: 1.5em; padding: 20px; }
-      button { width: 80%; font-size: 1em; }
+    #dayBreakdown {
+      margin-top: 30px;
+      font-size: 1em;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 20px;
+      border-radius: 12px;
+      max-width: 600px;
+      overflow-wrap: break-word;
+      white-space: pre-line;
+      text-align: left;
+      box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    }
+    @media (max-width: 900px) {
+      .form-row {
+        flex-direction: column;
+        max-width: 320px;
+      }
+      .form-group {
+        min-width: 100%;
+      }
     }
   </style>
 </head>
 <body>
-
   <h1>Work Time Countdown</h1>
 
-  <label>
-    Select target date:
-    <input type="date" id="datePicker">
-  </label>
-  <br>
+  <div class="form-row">
+    <div class="form-group">
+      <label for="datePicker">Target Date:</label>
+      <input type="date" id="datePicker" />
+    </div>
+    <div class="form-group">
+      <label for="workStart">Work Start:</label>
+      <input type="time" id="workStart" value="08:00" />
+    </div>
+    <div class="form-group">
+      <label for="workEnd">Work End:</label>
+      <input type="time" id="workEnd" value="17:30" />
+    </div>
+    <div class="form-group">
+      <label for="breakStart">Break Start:</label>
+      <input type="time" id="breakStart" value="11:30" />
+    </div>
+    <div class="form-group">
+      <label for="breakEnd">Break End:</label>
+      <input type="time" id="breakEnd" value="13:00" />
+    </div>
+  </div>
+
   <button onclick="startCountdown()">Start</button>
 
   <h2 id="countdown">No date selected</h2>
+  <div id="dayBreakdown"></div>
 
   <script>
     let intervalId = null;
     let remainingTime = 0;
 
-    function isWorkingDay(date) {
+    function parseTimeToDate(baseDate, timeStr) {
+      const [h, m] = timeStr.split(":").map(Number);
+      const d = new Date(baseDate);
+      d.setHours(h, m, 0, 0);
+      return d;
+    }
+
+    function isWorkingDay(date, holidayList) {
       const day = date.getDay();
-      return day >= 1 && day <= 5;
+      const dateStr = date.toISOString().split("T")[0];
+      return day >= 1 && day <= 5 && !holidayList.includes(dateStr);
     }
 
     function computeRemainingTime(selectedDateStr) {
       const now = new Date();
       const targetDate = new Date(selectedDateStr);
       targetDate.setHours(23, 59, 59, 999);
-      if (targetDate < now) return 0;
+
+      const holidayList = [];
+
+      const workStartStr = document.getElementById("workStart").value || "08:00";
+      const workEndStr = document.getElementById("workEnd").value || "17:30";
+      const breakStartStr = document.getElementById("breakStart").value || "11:30";
+      const breakEndStr = document.getElementById("breakEnd").value || "13:00";
+
       let totalMs = 0;
+      let breakdown = [];
 
       for (let d = new Date(now); d <= targetDate; ) {
         const current = new Date(d);
         current.setHours(0, 0, 0, 0);
-        if (!isWorkingDay(current)) {
+
+        if (!isWorkingDay(current, holidayList)) {
           d.setDate(d.getDate() + 1);
           continue;
         }
 
-        const workStart = new Date(current);
-        workStart.setHours(8, 0, 0, 0);
-        const workEnd = new Date(current);
-        workEnd.setHours(17, 30, 0, 0);
-        const breakStart = new Date(current);
-        breakStart.setHours(11, 30, 0, 0);
-        const breakEnd = new Date(current);
-        breakEnd.setHours(13, 0, 0, 0);
+        const ws = parseTimeToDate(current, workStartStr);
+        const we = parseTimeToDate(current, workEndStr);
+        const bs = parseTimeToDate(current, breakStartStr);
+        const be = parseTimeToDate(current, breakEndStr);
+
+        let dailyMs = 0;
 
         if (current.toDateString() === now.toDateString()) {
-          let sessionStart = new Date(now);
-          let sessionEnd = new Date(workEnd);
-          if (now >= workEnd) {
-            totalMs += 0;
-          } else if (now < workStart) {
-            totalMs += (workEnd - workStart) - (breakEnd - breakStart);
+          if (now >= we) {
+            dailyMs = 0;
+          } else if (now < ws) {
+            dailyMs = (we - ws) - (be - bs);
           } else {
-            if (sessionEnd <= breakStart) {
-              totalMs += sessionEnd - sessionStart;
-            } else if (sessionStart >= breakEnd) {
-              totalMs += sessionEnd - sessionStart;
+            let sessionStart = new Date(now);
+            const sessionEnd = we;
+
+            if (sessionEnd <= bs) {
+              dailyMs = sessionEnd - sessionStart;
+            } else if (sessionStart >= be) {
+              dailyMs = sessionEnd - sessionStart;
             } else {
-              if (sessionStart < breakStart) {
-                totalMs += breakStart - sessionStart;
+              if (sessionStart < bs) {
+                dailyMs += bs - sessionStart;
               }
-              if (sessionEnd > breakEnd) {
-                totalMs += sessionEnd - breakEnd;
+              if (sessionEnd > be) {
+                dailyMs += sessionEnd - be;
               }
             }
           }
         } else {
-          totalMs += (workEnd - workStart) - (breakEnd - breakStart);
+          dailyMs = (we - ws) - (be - bs);
+        }
+
+        totalMs += dailyMs;
+
+        if (dailyMs > 0) {
+          breakdown.push(
+            current.toISOString().split("T")[0] +
+              ": " +
+              (dailyMs / (1000 * 60 * 60)).toFixed(2) +
+              " hours"
+          );
         }
 
         d.setDate(d.getDate() + 1);
-        d.setHours(0, 0, 0, 0);
       }
+
+      document.getElementById("dayBreakdown").innerHTML =
+        "<strong>Daily Breakdown:</strong><br>" + breakdown.join("<br>");
 
       return totalMs;
     }
@@ -173,13 +243,16 @@
       }
 
       if (intervalId) clearInterval(intervalId);
+
       remainingTime = computeRemainingTime(selected);
+
       if (remainingTime <= 0) {
         document.getElementById("countdown").textContent = "No working time remaining!";
         return;
       }
 
       updateDisplay();
+
       intervalId = setInterval(() => {
         remainingTime -= 1000;
         if (remainingTime <= 0) {
@@ -192,12 +265,22 @@
     }
 
     function updateDisplay() {
-      const h = Math.floor(remainingTime / (1000 * 60 * 60));
-      const m = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
-      const s = Math.floor((remainingTime % (1000 * 60)) / 1000);
-      document.getElementById("countdown").textContent = `Remaining: ${h} hours ${m} minutes ${s} seconds`;
+      const totalHours = remainingTime / (1000 * 60 * 60);
+      const workDayHours = 8;
+
+      const days = Math.floor(totalHours / workDayHours);
+      const hours = Math.floor(totalHours % workDayHours);
+      const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+
+      let result = '';
+      if (days > 0) result += days + (days === 1 ? ' day ' : ' days ');
+      if (hours > 0 || days > 0) result += hours + (hours === 1 ? ' hour ' : ' hours ');
+      if (minutes > 0 || hours > 0 || days > 0) result += minutes + (minutes === 1 ? ' minute ' : ' minutes ');
+      result += seconds + (seconds === 1 ? ' second' : ' seconds');
+
+      document.getElementById("countdown").textContent = `Remaining: ${result}`;
     }
   </script>
-
 </body>
 </html>
